@@ -3,7 +3,7 @@
 <package format="3">
   <name>safety_controller</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
+  <description>Safety Controller for the lab wall follower</description>
   <maintainer email="azkrebs@gmail.com">racecar</maintainer>
   <license>Apache-2.0</license>
 
