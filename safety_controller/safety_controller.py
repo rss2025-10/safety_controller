@@ -23,15 +23,31 @@ class SafetyController(Node):
         self.safety_publisher = self.create_publisher(AckermannDriveStamped, "/drive", 10)
         self.SIDE = self.get_parameter('side').get_parameter_value().integer_value
 
+        self.scan_length = None
+
 
     def drive_msg_callback(self, msg):
         """Processes the drive message."""
+        # get range slicing boundaries
+        if not self.scan_length:
+            self.scan_length = len(msg.scan.ranges)
+            modifier = round(self.scan_length*(135/260))
+            self.r1 = round(self.scan_length*(1 - (45/260)))
+            self.r0 = self.r1 - modifier
+            self.l0 = round(self.scan_length*(45/260))
+            self.l1 = self.l0 + modifier
 
         scan = msg.scan
         drive_msg = msg.drive_msg.drive
-        right_range = (31, 83)
-        left_range = (17, 69)
         ranges = scan.ranges
+
+        # hardcoded range values for sim testing
+        # right_range = (31, 83)
+        # left_range = (17, 69)
+    
+        # calculated range values
+        right_range = (self.r0, self.r1)
+        left_range = (self.l0, self.l1)
 
         HARD_STOP_BOUND = 0.1
         SLOW_BOUND = 0.5

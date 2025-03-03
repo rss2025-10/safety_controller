@@ -1,2 +1,0 @@
-ackermann_msgs/AckermannDriveStamped drive_msg
-sensor_msgs/LaserScan scan
