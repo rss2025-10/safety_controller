@@ -17,22 +17,38 @@ class SafetyController(Node):
     def __init__(self):
         super().__init__("safety_controller")
 
+        self.declare_parameter("side", -1)
+
         self.safety_subscriber = self.create_subscription(SafeDriveMsg, "/safety_topic", self.drive_msg_callback, 10)
         self.safety_publisher = self.create_publisher(AckermannDriveStamped, "/drive", 10)
+        self.SIDE = self.get_parameter('side').get_parameter_value().integer_value
 
 
     def drive_msg_callback(self, msg):
         """Processes the drive message."""
 
-        line = msg.line.data
+        scan = msg.scan
         drive_msg = msg.drive_msg.drive
+        right_range = (31, 83)
+        left_range = (17, 69)
+        ranges = scan.ranges
 
-        kp_gains = 0.5
+        HARD_STOP_BOUND = 0.1
+        SLOW_BOUND = 0.5
 
-        dist_to_wall = abs(line[1])/np.sqrt(line[0]**2 + 1)
-        speed_multiplier = np.clip(1/(kp_gains*abs(line[0])), 0, 1)
-        self.get_logger().info(f"Speed multiplier: {speed_multiplier}")
-        new_speed = drive_msg.speed * speed_multiplier
+        if self.SIDE == -1:
+            rng = range(*right_range, 2)
+        else:
+            rng = range(*left_range, 2)
+
+        new_speed = drive_msg.speed
+        for k in rng:
+            average = 1/2 * (ranges[k] + ranges[k+1])
+            if average < HARD_STOP_BOUND:
+                new_speed = 0
+                break
+            if average < SLOW_BOUND:
+                new_speed *= .5
 
         new_msg = AckermannDriveStamped()
         new_drive_msg = drive_msg
