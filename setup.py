@@ -14,12 +14,13 @@ setup(
     install_requires=['setuptools'],
     zip_safe=True,
     maintainer='racecar',
-    maintainer_email='azkrebs@gmail.com',
+    maintainer_email='lexifoland@gmail.com',
     description='TODO: Package description',
-    license='Apache-2.0',
+    license='TODO: License declaration',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            "controller = safety_controller.safety_controller:main",
         ],
     },
 )
