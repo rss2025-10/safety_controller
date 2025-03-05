@@ -61,7 +61,7 @@ class SafetyController(Node):
         for k in rng:
             average = 1/2 * (ranges[k] + ranges[k+1])
             if average < HARD_STOP_BOUND:
-                new_speed = 0
+                new_speed = 0.0
                 break
             if average < SLOW_BOUND:
                 new_speed *= .5
