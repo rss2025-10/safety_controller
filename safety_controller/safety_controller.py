@@ -18,10 +18,15 @@ class SafetyController(Node):
         super().__init__("safety_controller")
 
         self.declare_parameter("side", -1)
+        self.declare_parameter("drive_topic", "default_drive")
+        self.declare_parameter("safety_topic", "default_safety")
 
-        self.safety_subscriber = self.create_subscription(SafeDriveMsg, "/safety_topic", self.drive_msg_callback, 10)
-        self.safety_publisher = self.create_publisher(AckermannDriveStamped, "/drive", 10)
+        self.SAFETY_TOPIC = self.get_parameter('safety_topic').get_parameter_value().string_value
+        self.DRIVE_TOPIC = self.get_parameter('drive_topic').get_parameter_value().string_value
         self.SIDE = self.get_parameter('side').get_parameter_value().integer_value
+
+        self.safety_subscriber = self.create_subscription(SafeDriveMsg, self.SAFETY_TOPIC, self.drive_msg_callback, 10)
+        self.safety_publisher = self.create_publisher(AckermannDriveStamped, self.DRIVE_TOPIC, 10)
 
         self.scan_length = None
 
@@ -29,6 +34,7 @@ class SafetyController(Node):
     def drive_msg_callback(self, msg):
         """Processes the drive message."""
         # get range slicing boundaries
+        self.get_logger().info("yo")
         if not self.scan_length:
             self.scan_length = len(msg.scan.ranges)
             modifier = round(self.scan_length*(135/260))
@@ -44,7 +50,7 @@ class SafetyController(Node):
         # hardcoded range values for sim testing
         # right_range = (31, 83)
         # left_range = (17, 69)
-    
+
         # calculated range values
         right_range = (self.r0, self.r1)
         left_range = (self.l0, self.l1)
