@@ -17,9 +17,9 @@ class SafetyController(Node):
     def __init__(self):
         super().__init__("safety_controller")
 
-        self.declare_parameter("side", -1)
+        self.declare_parameter("side", 1)
         self.scan_subscriber = self.create_subscription(LaserScan, "/scan", self.laser_scan_callback, 10)
-        self.safety_subscriber = self.create_subscription(AckermannDriveStamped, "/vesc/low_level/ackermann_cmd", self.drive_msg_callback, 10)
+        # self.safety_subscriber = self.create_subscription(AckermannDriveStamped, "/vesc/low_level/ackermann_cmd", self.drive_msg_callback, 10)
         self.safety_publisher = self.create_publisher(AckermannDriveStamped, "/vesc/low_level/input/safety", 10)
         self.SIDE = self.get_parameter('side').get_parameter_value().integer_value
 
@@ -48,40 +48,48 @@ class SafetyController(Node):
         right_range = (self.r0, self.r1)
         left_range = (self.l0, self.l1)
 
-        HARD_STOP_BOUND = 0.4
+        HARD_STOP_BOUND = 0.7
         SLOW_BOUND = 0.8
 
         if self.SIDE == -1:
-            rng = range(*right_range, 2)
+            rng = range(*right_range, 10)
         else:
-            rng = range(*left_range, 2)
-
-        self.speed = self.max_speed
+            rng = range(*left_range, 10)
 
         for k in rng:
-            average = 1/2 * (ranges[k] + ranges[k+1])
-            if average < HARD_STOP_BOUND:
-                self.speed = 0.0
-                break
-            if average < SLOW_BOUND:
-                self.speed = .5 * self.max_speed
-        
-
-
+            chunk_end = min(k+10, len(ranges))
+            chunk_values = [ranges[i] for i in range(k, chunk_end) if not np.isnan(ranges[i]) and not np.isinf(ranges[i])]
+            
+            if len(chunk_values) > 0:
+                average = sum(chunk_values) / len(chunk_values)
+                if average < HARD_STOP_BOUND:
+                    new_msg = AckermannDriveStamped()
+                    header = Header()
+                    header.stamp = self.get_clock().now().to_msg()
+                    header.frame_id = "racecar"
+                    new_msg.header = header
+                    new_msg.drive = AckermannDrive()
+                    new_msg.drive.speed = 0.0
+                    self.safety_publisher.publish(new_msg)
 
     def drive_msg_callback(self, msg):
         """Processes the drive message."""
         # get range slicing boundaries
 
-        new_msg = AckermannDriveStamped()
-        new_msg.header = msg.header
-        new_msg.drive = msg.drive
-        new_msg.drive.speed = self.speed
+        # new_msg = AckermannDriveStamped()
+        # new_msg.header = msg.header
+        # new_msg.drive = msg.drive
+        # new_msg.drive.speed = self.speed
+        msg.drive.speed = self.speed
+
+
+
+        
 
         # Send drive
-        self.get_logger().info("self.speed: " + str(self.speed))
-        self.safety_publisher.publish(new_msg)
-        # self.get_logger().info("Published drive message")
+        # self.get_logger().info("self.speed: " + str(self.speed))
+        self.get_logger().info("self.angle: " + str(msg.drive.steering_angle))
+        self.safety_publisher.publish(msg)
 
 
 
